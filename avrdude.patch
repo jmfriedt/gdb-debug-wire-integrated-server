@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000..cfdbfe5
 --- /dev/null
 +++ b/src/avrisp_raw_serial_to_spi.c
-@@ -0,0 +1,300 @@
+@@ -0,0 +1,302 @@
 +//
 +// Created by stefano on 24/08/22.
 +//
@@ -221,6 +221,7 @@ index 0000000..cfdbfe5
 +        addr++;
 +        x += 2;
 +    }
++    return 0;
 +}
 +
 +static int avrisp_serial_spi_paged_load_eeprom(const struct programmer_t *pgm, const AVRPART *p, const AVRMEM *m,
@@ -272,9 +273,10 @@ index 0000000..cfdbfe5
 +
 +int avrisp_serial_spi_pgm_led(const struct programmer_t *pgm, int value) {
 +    avr_serial_spi_command(pgm, 0x04 | (~value & 1));
++    return(0);
 +}
 +
-+int avrisp_serial_spi_foo_led(const struct programmer_t *pgm, int value) {}
++int avrisp_serial_spi_foo_led(const struct programmer_t *pgm, int value) {return(0);}
 +
 +const char avrisp_serial_spi_desc[] = "AvrISP serial to spi raw adapter";
 +
@@ -327,7 +329,7 @@ new file mode 100644
 index 0000000..415ea3f
 --- /dev/null
 +++ b/src/gdb_server_programmer.c
-@@ -0,0 +1,251 @@
+@@ -0,0 +1,252 @@
 +//
 +// Created by stefano on 24/08/22.
 +//
@@ -451,8 +453,8 @@ index 0000000..415ea3f
 +void gdbsrv_enable (struct programmer_t *pgm, const AVRPART *p){}
 +void gdbsrv_disable (const struct programmer_t *pgm){
 +    gdb_wrt(pgm, "qRcmd,7265"); //reset
-+    if(gdb_recv(pgm, buf, 1024)) return -1;
-+    if(strncmp(buf, "OK", 2)) return -2;
++    if(gdb_recv(pgm, buf, 1024)) return;
++    if(strncmp(buf, "OK", 2)) return;
 +
 +    gdb_wrt(pgm, "C");
 +}
@@ -484,7 +486,7 @@ index 0000000..415ea3f
 +void gdbsrv_powerup (const struct programmer_t *pgm){}
 +void gdbsrv_powerdown (const struct programmer_t *pgm){}
 +
-+int gdbsrv_program_enable (const struct programmer_t *pgm, const AVRPART *p){}
++int gdbsrv_program_enable (const struct programmer_t *pgm, const AVRPART *p){return(0);}
 +
 +int gdbsrv_chip_erase (const struct programmer_t *pgm, const AVRPART *p){
 +    avrdude_message(MSG_INFO, "chip_erase\n");
@@ -539,7 +541,8 @@ index 0000000..415ea3f
 +    return 0;
 +}
 +
-+int gdbsrv_read_sig_bytes (const struct programmer_t *pgm, AVRPART *p, const AVRMEM *m){
++int gdbsrv_read_sig_bytes (const struct programmer_t *pgm, const AVRPART *p, const AVRMEM *m){
++    AVRPART *ptmp=(AVRPART *)p;
 +    gdb_wrt(pgm, "qRcmd,73"); //s[ignature]
 +    if(gdb_recv(pgm, buf, 1024)) return -1;
 +    parse_monitor_answer(buf, 1024);
@@ -549,9 +552,9 @@ index 0000000..415ea3f
 +    m->buf[2] = 0;
 +
 +    //todo signature verification for debug_wire
-+    p->signature[0] = m->buf[0];
-+    p->signature[1] = m->buf[1];
-+    p->signature[2] = m->buf[2];
++    ptmp->signature[0] = m->buf[0];
++    ptmp->signature[1] = m->buf[1];
++    ptmp->signature[2] = m->buf[2];
 +
 +    if(gdb_recv(pgm, buf, 1024)) return -1; // OK
 +    return 0;
