@@ -130,7 +130,7 @@ target_link_libraries(integrated_server_elf lufa cdc dw_devices gdb stk500)
 add_custom_target(integrated_server
         COMMAND avr-objdump -d \"${CMAKE_BINARY_DIR}/integrated_server_elf\" > \"${CMAKE_BINARY_DIR}/integrated-server-asm.txt\";
         COMMAND avr-objcopy -O ihex -R .eeprom -R .fuse -R .lock -R .signature \"${CMAKE_BINARY_DIR}/integrated_server_elf\" \"${CMAKE_BINARY_DIR}/integrated_server.flash.hex\";
-        COMMAND avr-size --mcu="${MCU}" -C \"${CMAKE_BINARY_DIR}/integrated_server_elf\";
+        COMMAND avr-size --mcu="${MCU}" \"${CMAKE_BINARY_DIR}/integrated_server_elf\";
         DEPENDS integrated_server_elf
         )
 
