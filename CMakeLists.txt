@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(Ardwino C CXX ASM)
 
-set(MCU atmega16u2)
+set(MCU atmega32u4)
 set(ARCH AVR8)
 set(F_CPU 16000000)
 set(F_USB 16000000)
