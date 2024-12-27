@@ -78,9 +78,9 @@ uint8_t dw_cmd_halt(void) {
     // nel caso di halt da stato runnning: il controllore risponde dopo la fine del break e ritorna 0x55
     // nel caso di halt inatteso (già halted) il controllore asserisce oltre la durata causando un interrupt startbit
     uint16_t timeout = 500;
-    uint8_t ret ; // JMF = od_uart_recv_byte_timeout(&timeout);
+    uint8_t ret = od_uart_recv_byte_timeout(&timeout);
     if (!timeout) return 0;
-// JMF    if (ret != 0x55) ret = od_uart_recv_byte();
+    if (ret != 0x55) ret = od_uart_recv_byte();
     if (ret != 0x55) return 0; //wrong answer
 
     debug_wire_g.halted = 1; //set state as halted
@@ -368,8 +368,8 @@ void dw_ll_sram_read(uint16_t from, uint16_t len, void *buffer) {
  * @param buffer
  */
 void dw_ll_sram_write(uint16_t from, uint16_t len, void *buffer) {
-    dw_ll_mem_rw_setup(from, len, DW_MODE_SRAM_WRITE);
-    od_uart_send(buffer, len);
+// JMF   dw_ll_mem_rw_setup(from, len, DW_MODE_SRAM_WRITE);
+// JMF problem */   od_uart_send(buffer, len);
 }
 
 /**

@@ -104,7 +104,8 @@ void od_uart_deinit(void){
     TIMER_IRQ_DISABLE();
     FE_IRQ_DISABLE();
     TCCR1B = (1 << WGM12); //stop the timer
-    OD_HIGH(D, 7);
+    // OD_HIGH(D, 7); update JMF
+    OD_HIGH(E, 6);
 }
 
 /**
@@ -137,8 +138,8 @@ void od_uart_tx_byte(uint8_t data){
     fast_flags |= OD_UART_FLAG_WRT_MASK;
     uart_flags |= OD_UART_FLAG_BUSY_MASK;
 
-    OD_HIGH(D, 7);
-
+    // OD_HIGH(D, 7); update JMF
+    OD_HIGH(E, 6);
     TCNT1 = 0;
     TIMER_IRQ_ENABLE();
 }
@@ -160,7 +161,7 @@ static void _line_clear(uint8_t frames){
     TIMER_IRQ_ENABLE();
     uint8_t count = 10 * frames;
     while(count--){
-// JMF        while(! (TIFR1 & (1 << OCF1A)));
+//        while(! (TIFR1 & (1 << OCF1A))); // problem JMF
         TIMER_IRQ_CLEAR();
     }
     TIMER_IRQ_DISABLE();
@@ -173,7 +174,8 @@ static void _line_clear(uint8_t frames){
  */
 void od_uart_blank(uint8_t frames){
     cli();
-    OD_HIGH(D, 7);
+    // OD_HIGH(D, 7); update JMF
+    OD_HIGH(E, 6);
     _line_clear(frames);
     FE_IRQ_CLEAR();
     sei();
