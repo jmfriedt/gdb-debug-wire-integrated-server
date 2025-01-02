@@ -10,16 +10,20 @@
 
 void isp_deinit(void){
     spi_deinit();
-    DDRD &= ~(1 << PIND7); //reset is an input
-    PORTD |= (1 << PIND7); //pulled up
+    // DDRD &= ~(1 << PIND7); //reset is an input update JMF
+    // PORTD |= (1 << PIND7); //pulled up update JMF
+    DDRD &= ~(1 << PIND0); //reset is an input
+    PORTD |= (1 << PIND0); //pulled up
 
     GDB_LED_OFF();
     DW_LED_OFF();
 }
 void isp_init(void){
     spi_init();
-    PORTD |= (1 << PIND7); //high
-    DDRD |= (1 << PIND7); //reset is an output
+    // PORTD |= (1 << PIND7); //high update JMF
+    // DDRD |= (1 << PIND7); //reset is an output update JMF
+    PORTD |= (1 << PIND0); //high
+    DDRD |= (1 << PIND0); //reset is an output
     GDB_LED_ON();
     DW_LED_ON();
 }
@@ -44,10 +48,12 @@ void isp_task(void){
         if(esc) goto send;
         switch(cmd){
             case 0x02:
-                PORTD &= ~(1 << PIND7);
+                // PORTD &= ~(1 << PIND7); update JMF
+                PORTD &= ~(1 << PIND0);
                 break;
             case 0x03:
-                PORTD |= (1 << PIND7);
+                // PORTD |= (1 << PIND7); update JMF
+                PORTD |= (1 << PIND0);
                 break;
             case 0x04:
             case 0x05:

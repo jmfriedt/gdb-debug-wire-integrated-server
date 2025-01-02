@@ -10,9 +10,9 @@
 #define TIMER_IRQ_ENABLE() TIMSK1 |= (1 << OCIE1A)
 #define TIMER_IRQ_DISABLE() TIMSK1 &= ~(1 << OCIE1A)
 #define TIMER_IRQ_CLEAR() TIFR1 |= (1 << OCF1A)
-#define FE_IRQ_ENABLE() EIMSK |= (1 << INT6)   // update JMF
-#define FE_IRQ_DISABLE() EIMSK &= ~(1 << INT6) // update JMF
-#define FE_IRQ_CLEAR() EIFR &= ~(1 << INT6)    // update JMF
+#define FE_IRQ_ENABLE() EIMSK |= (1 << INT0)   // update JMF
+#define FE_IRQ_DISABLE() EIMSK &= ~(1 << INT0) // update JMF
+#define FE_IRQ_CLEAR() EIFR &= ~(1 << INT0)    // update JMF
 
 #define _OD_UART_WRT      (fast_flags & OD_UART_FLAG_WRT_MASK)
 #define _OD_UART_BUSY     (uart_flags & OD_UART_FLAG_BUSY_MASK)
@@ -88,7 +88,8 @@ void od_uart_init(uint32_t baud_rate){
     FE_IRQ_DISABLE();
     TCCR1A = (0 << COM1A0) | (0 << COM1B0) | (0 << WGM10); //no output compare
     TCCR1B = (1 << WGM12) | (_od_uart_calc_prescaler(baud_rate) << CS10); //ctc mode and prescaler. starts timer
-    EICRB |= (0 << ISC70); //irq on low level. could not use falling edge irq because of slow rise rate of the line causing irq firing.
+    // EICRB |= (0 << ISC70); //irq on low level. could not use falling edge irq because of slow rise rate of the line causing irq firing.
+    EICRB |= (0 << ISC00); // update JMF
 
     fast_flags = 0;
     uart_flags = 0;
@@ -105,7 +106,7 @@ void od_uart_deinit(void){
     FE_IRQ_DISABLE();
     TCCR1B = (1 << WGM12); //stop the timer
     // OD_HIGH(D, 7); update JMF
-    OD_HIGH(E, 6);
+    OD_HIGH(D, 0);
 }
 
 /**
@@ -121,11 +122,11 @@ uint8_t od_uart_status(void){
  * @param data
  */
 void od_uart_tx_byte(uint8_t data){
-    while(OD_UART_TX_FULL());
+//    while(OD_UART_TX_FULL()); // JMF problem
     uart_tx_buffer_full = 1;
     uart_tx_buffer = data;
 
-    while(_OD_UART_BUSY && !_OD_UART_WRT);
+// JMF    while(_OD_UART_BUSY && !_OD_UART_WRT);
     if(_OD_UART_BUSY) return; //already transmitting
     //PORTB ^= (1 << PINB7);
 
@@ -133,13 +134,12 @@ void od_uart_tx_byte(uint8_t data){
     uart_tx_buffer_full = 0;
     uart_data = uart_tx_buffer;
 
-    // fast_flags &= ~(1 << 7); update JMF
-    fast_flags &= ~(1 << 6);
+    fast_flags &= ~(1 << 7);
     fast_flags |= OD_UART_FLAG_WRT_MASK;
     uart_flags |= OD_UART_FLAG_BUSY_MASK;
 
     // OD_HIGH(D, 7); update JMF
-    OD_HIGH(E, 6);
+    OD_HIGH(D, 0);
     TCNT1 = 0;
     TIMER_IRQ_ENABLE();
 }
@@ -175,7 +175,7 @@ static void _line_clear(uint8_t frames){
 void od_uart_blank(uint8_t frames){
     cli();
     // OD_HIGH(D, 7); update JMF
-    OD_HIGH(E, 6);
+    OD_HIGH(D, 0);
     _line_clear(frames);
     FE_IRQ_CLEAR();
     sei();
@@ -187,10 +187,10 @@ void od_uart_blank(uint8_t frames){
 void od_uart_break(void){
     cli();
 //    OD_LOW(D, 7); // update JMF
-    OD_LOW(E, 6);
+    OD_LOW(D, 0);
     _line_clear(2);
 //    OD_HIGH(D, 7); // update JMF
-    OD_HIGH(E, 6);
+    OD_HIGH(D, 0);
     FE_IRQ_CLEAR();
     sei();
 }
@@ -204,7 +204,7 @@ void od_uart_break(void){
  */
 void od_uart_send(const void *data, uint16_t len){
     while (len--){
-        while(uart_tx_buffer_full);
+// JMF        while(uart_tx_buffer_full);
         od_uart_tx_byte((uint8_t) *( (uint8_t*) data++));
     }
 }
@@ -263,13 +263,12 @@ uint8_t od_uart_recv_byte_timeout(uint16_t * timeout_ms){
 __attribute__((optimize("-Ofast"))) ISR(TIMER1_COMPA_vect){
     cli();
 //    PORTB ^= (1 << PINB7);
-    // register uint8_t value = PIND; //read the bus state now, we should not wait. update JMF
-    register uint8_t value = PINE; //read the bus state now, we should not wait.
+    register uint8_t value = PIND; //read the bus state now, we should not wait.
     if(_OD_UART_WRT){
         // if ((PORTD ^ fast_flags) & (1 << PIND7) ) //if next_value is different than current bus status (set)
-        if ((PORTE ^ fast_flags) & (1 << PINE6) ) //if next_value is different than current bus status (set)
+        if (((PORTD << 7) ^ fast_flags) & (1 << PIND7) ) //if next_value is different than current bus status (set) // update JMF
             // OD_TOGGLE(D, 7);                        //toggle the bus update JMF
-            OD_TOGGLE(E, 6);                        //toggle the bus
+            OD_TOGGLE(D, 0);                        //toggle the bus
         register uint8_t v = ++fast_flags & 15;     //increment counter
         if(v > 9 ){ //if we have finished sending the stop bit
             fast_flags = 0; //clear the flags
@@ -287,20 +286,17 @@ __attribute__((optimize("-Ofast"))) ISR(TIMER1_COMPA_vect){
             sei();
             return;
         } else if(v == 9){
-            // fast_flags |= (1 << PIND7); //we need to send the stop bit now update JMF
-            fast_flags |= (1 << PINE6); //we need to send the stop bit now
+            fast_flags |= (1 << PIND7); //we need to send the stop bit now
         } else {
-            // fast_flags &= ~(1 << PIND7); //send current bit update JMF
-            fast_flags &= ~(1 << PINE6); //send current bit
-            // fast_flags |= uart_data << PIND7; update JMF
-            fast_flags |= uart_data << PINE6;
+            fast_flags &= ~(1 << PIND7); //send current bit update
+            fast_flags |= uart_data << PIND7;
             uart_data >>= 1;
         }
     } else {
         register uint8_t v = ++fast_flags & 15; //increment counter
         uart_data >>= 1; //MAKE WAY FOR THE QUEEN'S GUARD
         // uart_data |= value & (1 << PIND7); //store the bit update JMF
-        uart_data |= value & (1 << PINE6); //store the bit
+        uart_data |= (value<<7) & (1 << PIND7); //store the bit
         if( v == 8) { //last bit received
             if(uart_rx_buffer_pointer == OD_UART_RX_BUFFER_SIZE) //if we are at the end of the rx buffer
                 uart_rx_buffer_pointer = 0; //cycle back to 0. data will be lost =(
@@ -315,7 +311,7 @@ __attribute__((optimize("-Ofast"))) ISR(TIMER1_COMPA_vect){
 //            sei();
 
             // if(value & (1 << PIND7)) //if the stop bit is high update JMF
-            if(value & (1 << PINE6)) //if the stop bit is high
+            if((value << 7) & (1 << PIND7)) //if the stop bit is high
                 od_uart_irq_rx(uart_data); //fire irq
             else if(!uart_data) //if data is zero and stopbit is zero, it is a break. fire break irq
                 od_uart_irq_break();
@@ -332,7 +328,7 @@ __attribute__((optimize("-Ofast"))) ISR(TIMER1_COMPA_vect){
 }
 
 // __attribute__((optimize("-Ofast"))) ISR(INT7_vect){ update JMF
-__attribute__((optimize("-Ofast"))) ISR(INT6_vect){
+__attribute__((optimize("-Ofast"))) ISR(INT0_vect){
     cli();
     FE_IRQ_DISABLE(); //start a new rx. clear irq
     fast_flags = 0;
