@@ -369,7 +369,7 @@ void dw_ll_sram_read(uint16_t from, uint16_t len, void *buffer) {
  */
 void dw_ll_sram_write(uint16_t from, uint16_t len, void *buffer) {
 // JMF   dw_ll_mem_rw_setup(from, len, DW_MODE_SRAM_WRITE);
-// JMF problem */   od_uart_send(buffer, len);
+   od_uart_send(buffer, len);
 }
 
 /**

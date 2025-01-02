@@ -26,7 +26,7 @@ void gdb_init(uint16_t freq) {
 
     if (dw_init((uint32_t) freq * 1000)) {
         debug_wire_device_reset();
-// JMF        rtt_set_state(0);
+        rtt_set_state(0);
         debug_wire_resume(DW_GO_CNTX_CONTINUE);
         gdb_state_g.state = GDB_STATE_DISCONNECTED;
         last_used_freq = freq;
